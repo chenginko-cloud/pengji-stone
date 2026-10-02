@@ -76,6 +76,13 @@ button{cursor:pointer;border:0;background:none}
 .topbar .swapv{display:none;margin-left:8px;font-size:12.5px;color:var(--tx3);text-decoration:none;
   border-bottom:1px dashed #d5dae1;padding-bottom:1px}
 .topbar .swapv:hover{color:var(--accent);border-color:var(--accent)}
+.directory-link{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;
+  border:1px solid var(--accent);border-radius:7px;background:var(--accent-soft);color:var(--accent);
+  font-size:13px;font-weight:650;text-decoration:none;white-space:nowrap}
+.directory-link:hover{background:#dce6ff}
+.directory-link[hidden]{display:none!important}
+.filter-toggle,.close-filters{display:none}
+.filter-overlay[hidden]{display:none!important}
 .crumbs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 26px 0;min-height:0}
 .crumbs .cr{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--accent);
   background:var(--accent-soft);border-radius:999px;padding:2px 9px;cursor:pointer}
@@ -126,12 +133,30 @@ button{cursor:pointer;border:0;background:none}
 .hint{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1f2328;color:#fff;
   padding:8px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
 .hint.on{opacity:.93}
+@media(max-width:700px){
+  .side{width:min(322px,88vw);transform:translateX(-105%);transition:transform .2s;z-index:40}
+  .side.open{transform:none}
+  .filter-overlay{position:fixed;inset:0;background:rgba(20,24,31,.42);z-index:39}
+  .filter-toggle,.close-filters{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;background:#fff;padding:5px 9px;font-size:13px}
+  .close-filters{float:right}
+  .main{margin-left:0}
+  .topbar{padding:10px 14px;flex-wrap:wrap;gap:8px}
+  .topbar .sp{flex-basis:100%;height:0}
+  .listwrap{padding:5px 12px 60px}
+  .crumbs{padding:8px 12px 0}
+  .row{padding:14px 8px;gap:8px}
+  .rhead{padding:10px 12px;flex-wrap:wrap;gap:6px}
+  .rhead .sp{display:none}
+  .rhead button,.rhead .directory-link{padding:5px 8px;font-size:12px}
+  .rbody{padding:22px 16px 90px}
+}
 </style>
 </head>
 <body>
 
 <aside class="side">
   <div class="brand">
+    <button class="close-filters" id="closeFilters" aria-label="关闭筛选">✕</button>
     <h1>鹏基石材文稿库</h1>
     <div class="sub" id="brandSub">—</div>
   </div>
@@ -145,11 +170,14 @@ button{cursor:pointer;border:0;background:none}
     <button class="btn-ghost" id="resetAll">清空全部筛选</button>
   </div>
 </aside>
+<div class="filter-overlay" id="filterOverlay" hidden></div>
 
 <div class="main">
   <div class="topbar">
+    <button class="filter-toggle" id="showFilters" aria-controls="filters" aria-expanded="false">筛选</button>
     <div class="res">共 <b id="resN">0</b> 篇 · 第 <b id="resP">1</b> / <b id="resT">1</b> 页</div>
     <div class="sp"></div>
+    <a class="directory-link" href="directory.html">浏览目录</a>
     <label>排序</label>
     <select id="sort">
       <option value="default">来源默认序</option>
@@ -171,6 +199,7 @@ button{cursor:pointer;border:0;background:none}
 <div class="reader" id="reader">
   <div class="sheet">
     <div class="rhead">
+      <a class="directory-link" id="rBackDirectory" href="directory.html" hidden>← 返回目录</a>
       <button id="rPrev">← 上一篇</button>
       <button id="rNext">下一篇 →</button>
       <div class="sp"></div>
@@ -538,6 +567,15 @@ function step(d){
   openR(VIEW[np]);
 }
 
+function toggleFilters(open){
+  $(".side").classList.toggle("open",open);
+  $("#filterOverlay").hidden=!open;
+  $("#showFilters").setAttribute("aria-expanded",String(open));
+}
+$("#showFilters").onclick=()=>toggleFilters(true);
+$("#closeFilters").onclick=()=>toggleFilters(false);
+$("#filterOverlay").onclick=()=>toggleFilters(false);
+
 /* ================= 事件 ================= */
 let kwT=null;
 $("#kw").oninput=e=>{clearTimeout(kwT);
@@ -583,6 +621,7 @@ document.addEventListener("keydown",e=>{
     else if(e.key==="ArrowRight") step(1);
     return;
   }
+  if(e.key==="Escape"&&$(".side").classList.contains("open")){toggleFilters(false);return;}
   if(e.key==="/"&&document.activeElement!==$("#kw")){e.preventDefault(); $("#kw").focus();}
 });
 
@@ -592,6 +631,14 @@ $("#brandSub").innerHTML="<b>"+fmt(ST.total)+"</b> 篇 · <b>"+fmt(ST.han)+"</b>
 /* 网页访问时才提供「切到手机版」入口（本地打开文件时隐藏） */
 
 render();
+const requestedArticle=new URLSearchParams(location.search).get("article");
+if(requestedArticle!==null && /^\d+$/.test(requestedArticle)){
+  const index=Number(requestedArticle);
+  if(index>=0 && index<X.length){
+    $("#rBackDirectory").hidden=false;
+    openR(index);
+  }
+}
 </script>
 
 </body>
